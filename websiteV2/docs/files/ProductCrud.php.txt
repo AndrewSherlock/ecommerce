@@ -3,12 +3,9 @@
  * comment
  */
 
-namespace Itb;
+    namespace Itb;
 
-    use Itb\Product;
-    use Itb\ImageRespository;
-    use Itb\ValidateFunctions;
-    use Itb\CheckoutFunctions;
+
     use PDO;
 
     /**
@@ -277,7 +274,7 @@ namespace Itb;
                 $query = $connect->connectPDO()->prepare($sql);
                 $query->bindParam(':cat', $cat, \PDO::PARAM_INT);
             } else {
-                $sql = "SELECT * FROM products_db WHERE product_archived = 0 ORDER BY product_sold LIMIT 6";
+                $sql = "SELECT * FROM products_db WHERE product_archived = 0 ORDER BY product_sold DESC LIMIT 6";
                 $query = $connect->connectPDO()->prepare($sql);
             }
             $query->execute();
@@ -343,7 +340,7 @@ namespace Itb;
                     $file = $this->uploadProductImage($_FILES);
                     $jsonObject = $this->buildProductObject($_POST, $file);
                     $this->updateProductToDatabase($jsonObject, $_POST, $_GET['id']);
-                    $_SESSION['success'] = ['Product Successfully added'];
+                    $_SESSION['success'] = ['Product Edited Successfully.'];
                 }
                 header('Location:index.php?action=adminProducts');
             }

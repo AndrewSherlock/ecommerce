@@ -144,19 +144,19 @@
                                 <div class="accordion" style="margin-bottom: 0">
         <div class="accordion-group">
             <div class="accordion-heading">
-                                    <a class="accordion-toggle " data-toggle="collapse" data-target="#namespace-153492382"></a>
+                                    <a class="accordion-toggle " data-toggle="collapse" data-target="#namespace-98615160"></a>
                                 <a href="../namespaces/default.html" style="margin-left: 30px; padding-left: 0">\</a>
             </div>
-            <div id="namespace-153492382" class="accordion-body collapse in">
+            <div id="namespace-98615160" class="accordion-body collapse in">
                 <div class="accordion-inner">
 
                                                     <div class="accordion" style="margin-bottom: 0">
         <div class="accordion-group">
             <div class="accordion-heading">
-                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-333265459"></a>
+                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-191992466"></a>
                                 <a href="../namespaces/Itb.html" style="margin-left: 30px; padding-left: 0">Itb</a>
             </div>
-            <div id="namespace-333265459" class="accordion-body collapse ">
+            <div id="namespace-191992466" class="accordion-body collapse ">
                 <div class="accordion-inner">
 
                     
@@ -226,6 +226,7 @@
                                                                     <a href="../classes/Itb.CheckoutFunctions.html#method_addOneToStats" class="">addOneToStats()</a><br />
                                                                     <a href="../classes/Itb.CheckoutFunctions.html#method_chargeCard" class="">chargeCard()</a><br />
                                                                     <a href="../classes/Itb.CheckoutFunctions.html#method_inStock" class="">inStock()</a><br />
+                                                                    <a href="../classes/Itb.CheckoutFunctions.html#method_checkCartQty" class="">checkCartQty()</a><br />
                                                             </section>
                             <section class="span4">
                                                                     <em>No public properties found</em>
@@ -336,7 +337,7 @@
             <article class="method">
                 <h3 class="public ">chargeCard()</h3>
                 <a href="#source-view" role="button" class="pull-right btn" data-toggle="modal" style="font-size: 1.1em; padding: 9px 14px"><i class="icon-code"></i></a>
-                <pre class="signature" style="margin-right: 54px;">chargeCard(array  <span class="argument">$post</span>, array  <span class="argument">$user</span>) </pre>
+                <pre class="signature" style="margin-right: 54px;">chargeCard(array  <span class="argument">$post</span>, array  <span class="argument">$user</span>) : boolean</pre>
                 <p><em>for use with stripe for the checkout system.</em></p>
                 
 
@@ -355,7 +356,9 @@
                                             </table>
                 
                 
-                				
+                                    <h4>Returns</h4>
+                    boolean
+                                    				
                             </article>
         </div>
         <aside class="span4 detailsbar">
@@ -389,6 +392,47 @@
                                                     <tr>
                                 <td>array</td>
                                 <td>$itemsDB </td>
+                                <td></td>
+                            </tr>
+                                            </table>
+                
+                
+                                    <h4>Returns</h4>
+                    boolean
+                                    				
+                            </article>
+        </div>
+        <aside class="span4 detailsbar">
+            <h1><i class="icon-arrow-down"></i></h1>
+                                                            <dl>
+                                                                            </dl>
+            <h2>Tags</h2>
+            <table class="table table-condensed">
+                                    <tr><td colspan="2"><em>None found</em></td></tr>
+                            </table>
+        </aside>
+    </div>
+
+                                    <div class="row-fluid">
+        <div class="span8 content class">
+            <a id="method_checkCartQty" name="method_checkCartQty" class="anchor"></a>
+            <article class="method">
+                <h3 class="public ">checkCartQty()</h3>
+                <a href="#source-view" role="button" class="pull-right btn" data-toggle="modal" style="font-size: 1.1em; padding: 9px 14px"><i class="icon-code"></i></a>
+                <pre class="signature" style="margin-right: 54px;">checkCartQty(integer  <span class="argument">$id</span>, array  <span class="argument">$productArray</span>) : boolean</pre>
+                <p><em>Checks quantity for adding to cart</em></p>
+                
+
+                                    <h4>Parameters</h4>
+                    <table class="table table-condensed table-hover">
+                                                    <tr>
+                                <td>integer</td>
+                                <td>$id </td>
+                                <td></td>
+                            </tr>
+                                                    <tr>
+                                <td>array</td>
+                                <td>$productArray </td>
                                 <td></td>
                             </tr>
                                             </table>
@@ -460,7 +504,7 @@
                 <section class="span10 offset1">
                     <hr />
                     Documentation is powered by <a href="http://www.phpdoc.org/">phpDocumentor </a> and authored
-                    on November 28th, 2016 at 20:28.
+                    on November 29th, 2016 at 18:58.
                 </section>
             </section>
         </section>

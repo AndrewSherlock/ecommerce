@@ -28,7 +28,6 @@ class CheckoutFunctions
         $productCount = $query->fetch();
 
         $qty = $qty + $productCount['product_sold'];
-
         $sql = "UPDATE products_db SET product_sold = :qty WHERE id = :id";
         $updateQuery = $connect->connectPDO()->prepare($sql);
         $updateQuery->bindParam(':qty', $qty, \PDO::PARAM_INT);
@@ -40,6 +39,7 @@ class CheckoutFunctions
      * for use with stripe for the checkout system.
      * @param array $post
      * @param array $user
+     * @return bool
      */
     function chargeCard($post, $user)
     {
@@ -48,15 +48,32 @@ class CheckoutFunctions
         $email = $validateF->sanitize($user['user_email']);
         $amount = ((int)$post['amount']);
 
+
         $customer = \Stripe\Customer::create(array(
             'email' => $email,
             'card'  => $token
         ));
+        try {
         $charge = \Stripe\Charge::create(array(
             'customer' => $customer->id,
             'amount'   => $amount,
             'currency' => 'eur'
         ));
+            return true;
+        } catch (\Stripe\Error\ApiConnection $e) {
+            $_SESSION['error'] = ['There appears to be a network problem.'];
+            return false;
+        } catch (\Stripe\Error\InvalidRequest $e) {
+            $_SESSION['error'] = ['Oh no, Something has gone wrong. Please Try again.'];
+            return false;
+        } catch (\Stripe\Error\Api $e) {
+            $_SESSION['error'] = ['Server error, please try again later.'];
+            return false;
+        } catch (\Stripe\Error\Card $e) {
+            $_SESSION['error'] = ['Your card has been declined.'];
+            return false;
+        }
+
     }
 
     /**

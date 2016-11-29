@@ -27,6 +27,10 @@
         if(!isset($_COOKIE['user_login']))
         {
             $logF->endSession();
+            session_start();
+            $_SESSION['success'] = ['Your session has expired'];
+            $mainC->indexAction();
+
         }
     }
     $action = filter_input(INPUT_GET, 'action');

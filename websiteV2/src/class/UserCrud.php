@@ -306,7 +306,6 @@ class UserCrud
         $user = $userRp->getOneFromDB($validateF->sanitize($_GET['id']));
         if ($user != 0) {
             $obj_array = json_decode($user[3], true);
-           // var_dump($obj_array); die();
             $pass = $obj_array['user_password'];
             $addedBy = $obj_array['user_added'];
 
@@ -322,7 +321,9 @@ class UserCrud
                     $email = $validateF->sanitize($_POST['user_email']);
                     $this->updateUserToDatabase($userInfo, $validateF->sanitize($_GET['id']), $email);
                     $_SESSION['success'] = ['User edited successfully.'];
-
+                    header('Location:index.php?action=index');
+                } else{
+                    header('Location:index.php?action=index');
                 }
             } else{
                 $modelF = new ModelFunctions();

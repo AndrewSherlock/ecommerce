@@ -247,4 +247,44 @@ class ProductRepository
         }
         return  $this->products;
     }
+
+    /**
+     * gets our feature symbol
+     * @param int $num
+     * @return string
+     */
+    function getFeatureSettings($num)
+    {
+        if($num == 1){
+            return 'glyphicon-minus-sign';
+        } else{
+            return 'glyphicon-plus-sign';
+        }
+    }
+
+    /**
+     * gets our featured products
+     * @param int $limit
+     * @return array|int
+     */
+    function getFeaturedProducts($limit)
+    {
+        $connect = new Config();
+        $prodRP = new ProductRepository();
+
+        $sql = "SELECT * FROM products_db WHERE product_featured = 1 AND product_archived = 0";
+        $query = $connect->connectPDO()->prepare($sql);
+
+        $query->execute();
+
+        $products = $query->fetchAll();
+        $newProducts = [];
+        foreach ($products as $product) {
+            $productObj = new Product();
+            $productObj->copyToProduct(json_decode($product[2], true));
+            $product[2] = $productObj;
+            $newProducts[] = $product;
+        }
+        return $newProducts;
+    }
 }

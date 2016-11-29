@@ -4,6 +4,8 @@
  */
 
 namespace Itb;
+
+use PDO;
 /**
  * Class Config
  * @package Itb

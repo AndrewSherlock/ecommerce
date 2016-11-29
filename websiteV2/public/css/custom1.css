@@ -264,6 +264,14 @@ body .myclass .carousel-indicators{
     color: white;
 }
 
+.product_details a .product_title{
+    color: white;
+}
+
+.product_details a .product_title:hover{
+    color: #0e0e0e;
+}
+
 #store_product_desc{
     margin-top: 15px;
     margin-left: 40px;

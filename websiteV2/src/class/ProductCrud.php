@@ -340,7 +340,7 @@
                     $file = $this->uploadProductImage($_FILES);
                     $jsonObject = $this->buildProductObject($_POST, $file);
                     $this->updateProductToDatabase($jsonObject, $_POST, $_GET['id']);
-                    $_SESSION['success'] = ['Product Successfully added'];
+                    $_SESSION['success'] = ['Product Edited Successfully.'];
                 }
                 header('Location:index.php?action=adminProducts');
             }

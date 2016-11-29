@@ -4,7 +4,6 @@
  */
 
 namespace Itb;
-use Itb\User;
 
 /**
  * Class UserRepository

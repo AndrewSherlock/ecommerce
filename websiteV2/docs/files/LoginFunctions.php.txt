@@ -4,8 +4,7 @@
  */
 
 namespace Itb;
-use Itb\User;
-use Itb\ValidateFunctions;
+
 use PDO;
 
 /**

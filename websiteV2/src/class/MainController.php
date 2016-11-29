@@ -110,7 +110,11 @@ class MainController
                 $userInfo = $userCD->buildUserObject($_POST,$file, '',((isset($_SESSION['user_name'])))? $_SESSION['user_name'] : 'Self');
                 $userCD->addUserToDatabase($userInfo, $_POST);
                 $_SESSION['success'] = ['User added successfully.'];
-                header('Location:index.php?action=adminUsers');
+                if(isset($_SESSION['account_type'])) {
+                    header('Location:index.php?action=adminUsers');
+                } else{
+                    header('Location:index.php?action=login');
+                }
             } else{
                 $modelF->getAddUserForm();
             }
@@ -449,19 +453,22 @@ class MainController
      */
     public function checkoutAction()
     {
-        $modelF = new ModelFunctions();
-        $validateF = new ValidateFunctions();
-        if(isset($_GET['confirm']) && $_GET['confirm'])
-        {
-            if(!$validateF->processShippingDetails($_POST))
-            {
-                $_SESSION['error'] = ['Please Ensure fields are filled out.'];
-                header("Location:index.php?action=checkout");
-            } else{
+        if(count($_SESSION['user_cart']) > 0) {
+            $modelF = new ModelFunctions();
+            $validateF = new ValidateFunctions();
+            if (isset($_GET['confirm']) && $_GET['confirm']) {
+                if (!$validateF->processShippingDetails($_POST)) {
+                    $_SESSION['error'] = ['Please Ensure fields are filled out.'];
+                    header("Location:index.php?action=checkout");
+                } else {
+                    $modelF->checkout();
+                }
+            } else {
                 $modelF->checkout();
             }
         } else{
-            $modelF->checkout();
+            $_SESSION['error'] = ['Your cart is empty'];
+            header('Location:index.php?action=index');
         }
     }
 
@@ -488,11 +495,14 @@ class MainController
             $jsonCart = json_encode($cart);
 
 
-            $checkoutF->chargeCard($_POST, $userInfo);
-            $modelF->addOrderToOrderDB($jsonCart);
-            $prodCD->updateQtyInDb($cart);
-            $cartRp->removeProduct(0, true);
-            header("Location:index.php?action=thankyou");
+            if($checkoutF->chargeCard($_POST, $userInfo)) {
+                $modelF->addOrderToOrderDB($jsonCart);
+                $prodCD->updateQtyInDb($cart);
+                $cartRp->removeProduct(0, true);
+                header("Location:index.php?action=thankyou");
+            } else{
+                header("Location:index.php?action=cart");
+            }
         } else {
             $_SESSION['error'] = ['Can not do that at this time'];
             header("Location:index.php?action=index");

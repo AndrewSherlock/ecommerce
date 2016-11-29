@@ -1,11 +1,4 @@
-<?php
-/**
- * Created by PhpStorm.
- * User: andrew
- * Date: 21/11/2016
- * Time: 22:01
- */?>
-<main>
+
     <div class="col-md-12">
         <div class="col-md-2"></div>
         <div class="col-md-8">

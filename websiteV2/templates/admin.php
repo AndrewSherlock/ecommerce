@@ -1,6 +1,6 @@
 <?php
 ?>
-<main>
+
     <div class="col-md-12">
         <div class="col-md-5">
             <h2 class="text-center">Orders To Dispatch</h2>

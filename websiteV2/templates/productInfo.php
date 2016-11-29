@@ -1,6 +1,4 @@
-<?php
-?>
-<main>
+
     <div class="container-fluid">
         <div class="col-md-12">
             <h2 class="text-center"><?= ($_GET['action'] == 'editproduct')? 'Edit' : 'Add A';?> Product</h2>

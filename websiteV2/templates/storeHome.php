@@ -1,8 +1,4 @@
-<?php
 
-?>
-
-<main>
     <div class="col-md-12">
 
         <div class="col-md-2">
@@ -64,8 +60,8 @@
         </div>
         <div class="col-md-10">
             <div class="col-md-3"></div>
-            <div class="col-md-6"><h2 class="text-center store_header"><?=((!isset($_GET['favourites']))?((isset($_GET['cat'])))? strtoupper($categorys[($_GET['cat']-1)][1]) :'Featured Products' : 'Best Selling');?></h2></div>
-            <div class="col-md-3"><a href="index.php?action=<?=((!isset($_GET['favourites'])?"store&favourites=true" : 'store'));?>" class="btn btn-default btn-lg text-right buttn_fav"><?=((!isset($_GET['favourites'])?"Best Selling" : 'See our favourites'));?></a></div>
+            <div class="col-md-6"><h2 class="text-center store_header"><?=((!isset($_GET['favourites']))?((isset($_GET['cat'])))? strtoupper($categorys[($_GET['cat']-1)][1]) :'Best Selling' : 'Featured Products');?></h2></div>
+            <div class="col-md-3"><a href="index.php?action=<?=((!isset($_GET['favourites'])?"store&favourites=true" : 'store'));?>" class="btn btn-default btn-lg text-right buttn_fav"><?=((!isset($_GET['favourites'])?"See Our Favourites" : 'See Best Selling'));?></a></div>
 
                <?php
                foreach ($newProducts as $newProduct) : ;?>

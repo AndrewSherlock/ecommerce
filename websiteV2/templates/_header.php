@@ -33,7 +33,7 @@
 <nav class="my_nav">
     <div class="top_nav">
         <div class="text-left">
-            <h3>Akira Mech</h3>
+            <h3>Akira Fan Shop</h3>
         </div>
         <div class="nav_links">
             <ul>
@@ -72,8 +72,9 @@
         </div>
     </div>
 </nav>
+    <main>
     <?php if(!empty($_SESSION['error'])) : ?>
-<div class="col-md-12 text-center bg-danger">
+<div class="col-md-12 text-center bg-danger alert">
     <?php
         $_SESSION['error'] = $text2->displayStatus($_SESSION['error']);
     ?>
@@ -82,7 +83,7 @@
     endif;
 
     if(!empty($_SESSION['success'])) : ?>
-    <div class="col-md-12 text-center bg-success">
+    <div class="col-md-12 text-center bg-success alert">
         <?php
         $_SESSION['success'] = $text2->displayStatus($_SESSION['success']);
         ?>

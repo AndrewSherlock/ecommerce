@@ -560,8 +560,8 @@ class MainController
             $validateF = new ValidateFunctions();
             $modelF->getAccountInfo($validateF->sanitize($_SESSION['id']));
         } else{
-            $_SESSION['error'] = ['Your must be logged in'];
-           header('Location:index.php?action=login');
+            $_SESSION['error'] = ['You must be logged in'];
+            header('Location:index.php?action=login');
         }
     }
 

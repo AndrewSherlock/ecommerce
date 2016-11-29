@@ -1,7 +1,4 @@
-<?php
-?>
 
-<main>
     <div class="col-md-12">
         <h2 class="text-center"><?=ucfirst($curUser->getName());?> </h2>
         <img src="<?=$curUser->getImage()?>" alt="<?=$curUser->getName()?>" class="center-block" id = "account_img">

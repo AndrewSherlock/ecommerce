@@ -274,7 +274,7 @@
                 $query = $connect->connectPDO()->prepare($sql);
                 $query->bindParam(':cat', $cat, \PDO::PARAM_INT);
             } else {
-                $sql = "SELECT * FROM products_db WHERE product_archived = 0 ORDER BY product_sold LIMIT 6";
+                $sql = "SELECT * FROM products_db WHERE product_archived = 0 ORDER BY product_sold DESC LIMIT 6";
                 $query = $connect->connectPDO()->prepare($sql);
             }
             $query->execute();

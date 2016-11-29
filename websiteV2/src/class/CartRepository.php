@@ -109,29 +109,40 @@ class CartRepository
     public function addToCartDatabase($id,$size, $price,$qty)
     {
         $connect = new Config();
+        $checkout = new CheckoutFunctions();
+
         if(!isset($_SESSION))
         {
             session_start();
         }
         if($qty > 0) {
-            $user_id = $_SESSION['id'];
-            $cartArray = $_SESSION['user_cart'];
-            $productArray = [$id, $size, $price, $qty];
-            $date = $this->getMonthAhead();
+            if($size != '') {
+                $user_id = $_SESSION['id'];
+                $cartArray = $_SESSION['user_cart'];
+                $productArray = [$id, $size, $price, $qty];
 
-            if (!empty($cartArray)) {
+                if ($checkout->checkCartQty($id, $productArray)) {
+                    $date = $this->getMonthAhead();
 
-                $cart = $this->checkItems($cartArray, $productArray);
-                $sql = "UPDATE cart_db SET cart = '$cart'" . ",expiry ='$date' WHERE user_id = '$user_id'";
-            } else {
-                $cart = array();
-                $cart[] = $productArray;
-                $cartString = json_encode($cart);
-                $sql = "INSERT INTO cart_db(cart,expiry,user_id) VALUES('$cartString','$date','$user_id')";
+                    if (!empty($cartArray)) {
+
+                        $cart = $this->checkItems($cartArray, $productArray);
+                        $sql = "UPDATE cart_db SET cart = '$cart'" . ",expiry ='$date' WHERE user_id = '$user_id'";
+                    } else {
+                        $cart = array();
+                        $cart[] = $productArray;
+                        $cartString = json_encode($cart);
+                        $sql = "INSERT INTO cart_db(cart,expiry,user_id) VALUES('$cartString','$date','$user_id')";
+                    }
+
+                    $connect->connectPDO()->query($sql);
+                    $_SESSION['success'] = ['Product Added To Cart'];
+                } else{
+                    $_SESSION['error'] = ['Not enough left in Stock.'];
+                }
+            } else{
+                $_SESSION['error'] = ['Size can not be blank.'];
             }
-
-            $connect->connectPDO()->query($sql);
-            $_SESSION['success'] = ['Product Added To Cart'];
         } else {
             $_SESSION['error'] = ['You must add more then on to the cart.'];
         }

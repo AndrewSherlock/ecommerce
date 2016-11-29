@@ -1,6 +1,4 @@
-<?php
-?>
-<main>
+
     <div class="col-md-12">
         <h2 class="text-center">Order Information</h2>
         <div class="col-md-6">

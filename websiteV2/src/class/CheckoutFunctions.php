@@ -4,7 +4,7 @@
  */
 
 namespace Itb;
-
+use PDO;
 
 /**
  * Class CheckoutFunctions
@@ -30,7 +30,7 @@ class CheckoutFunctions
         $qty = $qty + $productCount['product_sold'];
 
         $sql = "UPDATE products_db SET product_sold = :qty WHERE id = :id";
-        $updateQuery = connectPDO()->prepare($sql);
+        $updateQuery = $connect->connectPDO()->prepare($sql);
         $updateQuery->bindParam(':qty', $qty, \PDO::PARAM_INT);
         $updateQuery->bindParam(':id', $id, \PDO::PARAM_INT);
         $updateQuery->execute();
@@ -87,4 +87,32 @@ class CheckoutFunctions
         }
         return true;
     }
+
+    /**
+     * Checks quantity for adding to cart
+     * @param int $id
+     * @param array $productArray
+     * @return bool
+     */
+    function checkCartQty($id, $productArray)
+    {
+        $productRp = new ProductRepository();
+        $text = new TextFunctions();
+        $product = $productRp->getOneFromDb($id);
+        $productObj = new Product();
+
+        $productObj->copyToProduct(json_decode($product['product_info'], true));
+        $product['product_info'] = $productObj;
+        $dbSize = $text->deconstructString($productObj->getSize());
+        foreach ($dbSize as $sizeCheck) {
+            if ($sizeCheck[0] == $productArray[1]) {
+                echo 'found';
+                if ($sizeCheck[1] < $productArray[3]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
 }

@@ -1,10 +1,14 @@
+* {
+     margin: 0;
+     padding: 0;
+ }
 
-body{
+html, body {
     height: 100%;
-    padding: 0;
     background-color: #5a5a5a;
     font-family: "PT Sans Caption";
 }
+
 .prod_featured img{
     width: 200px;
     height: 250px;
@@ -379,24 +383,6 @@ body .product_info .product_button{
     margin-top: 50px;
 }
 
-footer {
-    margin-bottom: -50px;
-    position:fixed;
-    left: 0;
-    right:0;
-    bottom:0;
-    background:blue;//optional
-}
-
-footer .top-bar{
-    height: 10px;
-    background-color: #2a2730;
-}
-
-footer .bottom-bar{
-    height: 30px;
-    background-color: #0f0f0f;
-}
 
 body .site-map{
     margin-top: 50px;
@@ -450,4 +436,37 @@ body .edit_image img{
     height: auto;
     margin-top: 10px;
     margin-right: 20px;
+}
+
+
+
+.wrapper {
+    min-height: 100%;
+}
+
+main {
+    overflow: auto;
+    padding-bottom: 50px; /* must be same height as the footer */
+    min-height: 700px;
+    margin-bottom: 20px;
+}
+
+footer {
+    position: relative;
+    margin-top: -50px; /* negative value of footer height */
+    height: 80px;
+    margin-bottom: -20px;
+    overflow: hidden;
+    clear: both;
+    background-color: #0f0f0f;
+    color: white;
+}
+
+footer .top-bar{
+    height: 10px;
+    background-color: #2a2730;
+}
+
+body .alert{
+    font-size: 1.4vw;
 }

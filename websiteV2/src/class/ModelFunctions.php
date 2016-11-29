@@ -192,8 +192,8 @@
             $userPhone = $user->getPhone();
             $curDate = date('Y-m-d H:i:s');
 
-            $sql = "INSERT INTO orders_db(user_id, user_address, user_phone, user_total,user_items, date_ordered) 
-                VALUES (:user_id, :user_address, :user_phone, :user_total,:user_items, :date_ordered)";
+            $sql = 'INSERT INTO orders_db(user_id, user_address, user_phone, user_total,user_items, date_ordered) 
+                VALUES (:user_id, :user_address, :user_phone, :user_total,:user_items, :date_ordered)';
             $query = $connect->connectPDO()->prepare($sql);
             $query->bindParam(':user_id', $userId, \PDO::PARAM_INT);
             $query->bindParam(':user_address', $userAddress, \PDO::PARAM_STR);
@@ -247,6 +247,6 @@
         function mustLogin()
         {
             $_SESSION['error'] = ['You must login for that'];
-            header("Location:index.php?action=login");
+            header("Location:index.php?action=index");
         }
     }

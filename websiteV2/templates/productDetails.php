@@ -1,4 +1,4 @@
-<main>
+
     <div class="col-md-12 product_info">
         <div class="col-md-5">
             <img class="center-block" src="<?=$product['product_info']->getImage();?>" alt="<?=$product['product_info']->getName();?>">

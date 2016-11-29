@@ -1,7 +1,4 @@
-<?php
 
-?>
-<main>
     <div class="col-md-12">
         <div class="col-md-8 text-center">
             <h3 class="text-center">Cart</h3>

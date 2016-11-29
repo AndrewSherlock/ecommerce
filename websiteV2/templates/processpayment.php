@@ -1,7 +1,4 @@
-<?php
 
-?>
-<main>
     <div class="col-md-12">
         <h2 class="text-center">Order Successful</h2>
         <div class="col-md-3"></div>

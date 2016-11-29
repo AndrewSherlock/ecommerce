@@ -1,4 +1,4 @@
-<main>
+
     <div class="container-fluid">
         <div id="spacer"></div>
         <div id="carousel-ad_panel" class="myclass carousel slide" data-ride="carousel" data-interval="5000">

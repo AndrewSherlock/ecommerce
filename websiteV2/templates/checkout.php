@@ -1,4 +1,4 @@
-<main>
+
 <?php
     if(!isset($_GET['confirm']) || $_GET['confirm'] != 1):
 ?>

@@ -1,4 +1,4 @@
-<main>
+
     <div class="container-fluid">
         <div class="col-md-12">
             <div class="col-md-3" style="margin-top: 10px;">

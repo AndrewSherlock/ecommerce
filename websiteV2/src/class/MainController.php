@@ -1,0 +1,679 @@
+<?php
+/**
+ * Comments
+ */
+namespace Itb;
+
+use PDO;
+
+
+/**
+ * Class MainController
+ * @package Itb
+ */
+class MainController
+{
+
+    /**
+     * Gets us our header
+     * @param string $page_id
+     * @param array $current
+     */
+    public function getHeader($page_id, $current)
+    {
+        $text2 = new TextFunctions();
+        $productRp = new ProductRepository();
+        require_once '../templates/_header.php';
+    }
+
+    /**
+     * Gets our footer.
+     */
+    public function getFooter()
+    {
+        require_once '../templates/_footer.php';
+    }
+
+    /**
+     * Gets our index page
+     */
+    public function indexAction()
+    {
+        $styleArray = ['current','','','',''];
+        $this->getHeader('Index', $styleArray);
+        $productRp = new ProductRepository();
+        $products = $productRp->getSaleProducts(6);
+        $productObjs = [];
+        foreach ($products as $product)
+        {
+            $prod = new Product();
+            $prod->copyToProduct(json_decode($product['product_info'], true));
+            $product[2] = $prod;
+            $productObjs[] = $product;
+        }
+        $text = new TextFunctions();
+        require_once '../templates/index.php';
+        $this->getFooter();
+    }
+
+    /**
+     * Our log in action. makes sure the user is not already logged in.
+     */
+    public function loginAction()
+    {
+        $logF = new LoginFunctions();
+        if(!isset($_SESSION['id']) || $_SESSION['id'] == '') {
+            if (!empty($_POST)) {
+                $logF->loginUser($_POST);
+                header('Location:index.php?action=index');
+            } else {
+                $styleArray = ['','','','','current'];
+                $this->getHeader('Login',$styleArray);
+                require_once '../templates/login.php';
+                $this->getFooter();
+            }
+        } else{
+            $_SESSION['error'] = ['You are already logged in.'];
+            header('Location:index.php?action=index');
+        }
+    }
+
+    /**
+     *  Logouts out our user
+     */
+    public function logoutAction()
+    {
+        $page_id = 'Logout';
+        $logF = new LoginFunctions();
+        if(isset($_SESSION['id']) && $_SESSION['id'] != '')
+        {
+            $logF->logUserOut();
+        } else{
+            $_SESSION['error'] = ['You must be logged in to do that.'];
+            header('Location:index.php?action=index');
+        }
+    }
+
+    /**
+     * Action to add our user to site
+     */
+    function addUserAction()
+    {
+        $userCD = new UserCrud();
+        $modelF = new ModelFunctions();
+        if(!empty($_POST))
+        {
+            $requiredFields = [$_POST['user_name'],$_POST['user_street1'],$_POST['user_city'],$_POST['user_county'],$_POST['user_country'],$_POST['user_phone'],$_POST['user_email'], $_POST['user_password'], $_POST['user_confirm']];
+            if($userCD->checkUserInfo($_POST,$_FILES,$requiredFields))
+            {
+                $file = $userCD->uploadUserImage($_FILES);
+                $userInfo = $userCD->buildUserObject($_POST,$file, '',((isset($_SESSION['user_name'])))? $_SESSION['user_name'] : 'Self');
+                $userCD->addUserToDatabase($userInfo, $_POST);
+                $_SESSION['success'] = ['User added successfully.'];
+                header('Location:index.php?action=adminUsers');
+            } else{
+                $modelF->getAddUserForm();
+            }
+        } else{
+            $modelF->getAddUserForm();
+        }
+    }
+
+    /**
+     * Feature products Action
+     */
+    public function featureAction()
+    {
+        if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor')
+        {
+            $productCD = new ProductCrud();
+            $productCD->featureAction();
+        } else{
+            $_SESSION['error'] = ['You do not have the privileges to do that.'];
+            header('Location:index.php?action=index');
+        }
+    }
+
+    /**
+     * Checks if we have staff privileges, if we do lets use get the admin home.
+     */
+    public function adminAction()
+    {
+        if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor')
+        {
+            $modelF = new ModelFunctions;
+            $modelF->getAdminPane();
+        } else{
+            $_SESSION['error'] = ['You do not have the privileges to do that.'];
+            header('Location:index.php?action=index');
+        }
+    }
+
+    /**
+     * Checks if we have staff privileges, if so gets our admin product
+     */
+    public function adminProductsAction()
+    {
+        if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor')
+        {
+            $modelF = new ModelFunctions;
+            $modelF->getAdminProducts();
+        } else{
+            $_SESSION['error'] = ['You do not have the privileges to do that.'];
+            header('Location:index.php?action=index');
+        }
+    }
+
+    /**
+     * product archive action
+     */
+    public function archiveAction()
+    {
+        if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor')
+        {
+            $productCD = new ProductCrud();
+            $productCD->archiveProductAction();
+        } else{
+            $_SESSION['error'] = ['You do not have the privileges to do that.'];
+            header('Location:index.php?action=index');
+        }
+    }
+
+    /**
+     * Add product Action, makes sure we have staff privileges
+     */
+    public function addProductsAction()
+    {
+        if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor')
+        {
+            $mainC = new ModelFunctions();
+            $mainC->getProductInfoPane();
+        } else{
+            $_SESSION['error'] = ['You do not have the privileges to do that.'];
+            header('Location:index.php?action=index');
+        }
+    }
+
+    /**
+     * Process the product info we are trying to upload to the database, blocks use if we arnt staff
+     */
+    public function processProductAction()
+    {
+        if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor')
+        {
+            $productCD = new ProductCrud();
+            $productCD->addProductAction();
+        } else{
+            $_SESSION['error'] = ['You do not have the privileges to do that.'];
+            header('Location:index.php?action=index');
+        }
+    }
+
+    /**
+     * updates product action, only allowed if we are staff
+     */
+    public function updateProductAction()
+    {
+        if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor')
+        {
+            $productCD = new ProductCrud();
+            $productCD->updateProductsAction();
+        } else{
+            $_SESSION['error'] = ['You do not have the privileges to do that.'];
+            header('Location:index.php?action=index');
+        }
+    }
+
+    /**
+     * gets our pane to edit our product, blocks use if we not staff.
+     */
+    public function editProductAction()
+    {
+        {
+            if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor')
+            {
+                $modelF = new ModelFunctions;
+                $modelF->getProductInfoPane();
+            } else{
+                $_SESSION['error'] = ['You do not have the privileges to do that.'];
+                header('Location:index.php?action=index');
+            }
+        }
+    }
+
+    /**
+     * gets our admin user panel
+     */
+    public function adminUserAction()
+    {
+        {
+            if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor')
+            {
+                $modelF = new ModelFunctions;
+                $modelF->getAdminUser();
+            } else{
+                $_SESSION['error'] = ['You do not have the privileges to do that.'];
+                header('Location:index.php?action=index');
+            }
+        }
+    }
+
+    /**
+     *  deletes our user action, only if we have the allowed permission
+     */
+    public function deleteUserAction()
+    {
+        if($_SESSION['id'] == $_GET['id'])
+        {
+            $userCD = new UserCrud();
+            $userCD->deleteUser();
+        } else{
+            if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor')
+            {
+                $userCD = new UserCrud();
+                $userCD->deleteUser();
+            } else{
+                $_SESSION['error'] = ['You do not have the privileges to do that.'];
+                header('Location:index.php?action=index');
+            }
+        }
+    }
+
+    /**
+     * if allowed permission, lets us edit the user or the user to edit themselves
+     */
+    public function editUserAction()
+    {
+        $userCD = new UserCrud();
+        if($_SESSION['id'] == $_GET['id'])
+        {
+            $userCD->editUserAction();
+        } else{
+            if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor')
+            {
+                $userCD->editUserAction();
+                header('Location:index.php?action=adminUsers');
+            } else{
+                $_SESSION['error'] = ['You do not have the privileges to do that.'];
+                header('Location:index.php?action=index');
+            }
+        }
+    }
+
+    /**
+     * gets our store page, makes sure we are trying to show a category that exists
+     */
+    function getStoreHomeAction()
+    {
+        $productRp = new ProductRepository();
+        $text = new TextFunctions();
+        $productCD = new ProductCrud();
+        $cartRp = new CartRepository();
+        $categorys = $productRp->getCategorys();
+        $newProducts =[];
+        if(isset($_GET['favourites']))
+        {
+            $newProducts = $productRp->getFeaturedProducts(10);
+            if($newProducts == 0)
+            {
+                $_SESSION['error'] = ['No featured products at this time'];
+                $newProducts =  $productCD->getProductsForStoreHome();
+            }
+        } else {
+            $newProducts = $productCD->getProductsForStoreHome();
+        }
+        $catArray = [];
+        $catInfo = $productRp->getCategorys();
+
+        if (isset($_SESSION['user_cart'])) {
+            $cart = $_SESSION['user_cart'];
+            $productInfoToGet = $cartRp->getCart();
+        }
+
+        foreach ($catInfo as $cat) {
+            $catArray[] = $cat[0];
+        }
+
+        if (isset($_GET['cat'])) {
+            if (in_array($_GET['cat'], $catArray)) {
+                $styleArray = ['','current','','',''];
+                $this->getHeader('Store', $styleArray);
+                require_once '../templates/storeHome.php';
+                $this->getFooter();
+            } else {
+                $_SESSION['error'] = ['No Category found'];
+                header('Location:index.php?action=store');
+            }
+        } else {
+            $styleArray = ['','current','','',''];
+            $this->getHeader('Store', $styleArray);
+            require_once '../templates/storeHome.php';
+            $this->getFooter();
+        }
+    }
+
+    /**
+     *  gets the details for each our products. makes sure we have results first of a certain product
+     */
+    function getProductDetailsAction()
+    {
+        $text = new TextFunctions();
+        $validateF = new ValidateFunctions();
+        $connect = new Config();
+
+        $id = $validateF->sanitize($_GET['prodid']);
+        $sql = "SELECT * FROM products_db WHERE id = :id";
+        $query = $connect->connectPDO()->prepare($sql);
+        $query->bindParam(':id', $id, \PDO::PARAM_INT);
+        $query->execute();
+        $product = $query->fetch(PDO::FETCH_ASSOC);
+        if ($query->rowCount() == 0) {
+            $_SESSION['error'] = ['Product not found'];
+            header("Location:index.php?action=store");
+        } else {
+            $catId = $product['product_category'];
+            $catSql = "SELECT * FROM category WHERE id = :cat";
+            $catQuery = $connect->connectPDO()->prepare($catSql);
+            $catQuery->bindParam(':cat', $catId, \PDO::PARAM_INT);
+            $catQuery->execute();
+            $cat = $catQuery->fetch(PDO::FETCH_ASSOC);
+
+            $prod = new Product();
+            $prod->copyToProduct(json_decode($product['product_info'], true));
+            $product['product_info'] = $prod;
+
+            $sizeArray = $product['product_info']->getSize();
+            $sizeArray = $text->deconstructString($sizeArray);
+
+            $styleArray = ['','current','','',''];
+            $this->getHeader('Product - '.$product['product_info']->getName(), $styleArray);
+            require_once '../templates/productDetails.php';
+        }
+    }
+
+    /**
+     * action to add product to our cart
+     */
+    public function addToCartAction()
+    {
+        if(isset($_SESSION['user_name']))
+        {
+            $cartRp = new CartRepository();
+            $cartRp->addToCartDatabase($_POST['product_id'],$_POST['size'], $_POST['price'],$_POST['qty']);
+            header("Location:index.php?action=store");
+        } else{
+            $modelF = new ModelFunctions;
+            $modelF->mustLogin();
+        }
+    }
+
+    /**
+     * action to view our cart
+     */
+    public function viewCartAction()
+    {
+        if(isset($_SESSION['user_cart']))
+        {
+            $cartRp = new CartRepository();
+            $cartRp->getCart();
+        } else{
+            $modelF = new ModelFunctions;
+            $modelF->mustLogin();
+        }
+    }
+
+    /**
+     * action to remove products from our cart
+     */
+    public function removeProductAction()
+    {
+        $cartRp = new CartRepository();
+        $cartRp->removeProduct($_GET['prod'], false);
+        $_SESSION['success'] = ['Product removed.'];
+        header("Location:index.php?action=cart");
+    }
+
+    /**
+     * action to empty our cart
+     */
+    public function emptyCartAction()
+    {
+        $cartRp = new CartRepository();
+        $cartRp->removeProduct(0, true);
+        $_SESSION['success'] = ['Cart emptied.'];
+        header("Location:index.php?action=cart");
+    }
+
+    /**
+     * action to checkout our user
+     */
+    public function checkoutAction()
+    {
+        $modelF = new ModelFunctions();
+        $validateF = new ValidateFunctions();
+        if(isset($_GET['confirm']) && $_GET['confirm'])
+        {
+            if(!$validateF->processShippingDetails($_POST))
+            {
+                $_SESSION['error'] = ['Please Ensure fields are filled out.'];
+                header("Location:index.php?action=checkout");
+            } else{
+                $modelF->checkout();
+            }
+        } else{
+            $modelF->checkout();
+        }
+    }
+
+    /**
+     * process our checkout
+     */
+    function processCheckoutAction()
+    {
+        $connect = new Config();
+        if(isset($_POST['stripeToken'])) {
+            $validateF = new ValidateFunctions();
+            $cartRp = new CartRepository();
+            $checkoutF = new CheckoutFunctions();
+            $prodCD = new ProductCrud();
+            $modelF = new ModelFunctions();
+            $id = $validateF->sanitize($_SESSION['id']);
+            $sql = "SELECT * FROM users WHERE id = :id";
+            $query = $connect->connectPDO()->prepare($sql);
+            $query->bindParam(':id', $id, \PDO::PARAM_INT);
+            $query->execute();
+            $userInfo = $query->fetch(PDO::FETCH_ASSOC);
+
+            $cart = $_SESSION['user_cart'];
+            $jsonCart = json_encode($cart);
+
+
+            $checkoutF->chargeCard($_POST, $userInfo);
+            $modelF->addOrderToOrderDB($jsonCart);
+            $prodCD->updateQtyInDb($cart);
+            $cartRp->removeProduct(0, true);
+            header("Location:index.php?action=thankyou");
+        } else {
+            $_SESSION['error'] = ['Can not do that at this time'];
+            header("Location:index.php?action=index");
+        }
+    }
+
+    /**
+     * gets our page after we pay for item
+     */
+    function getProcessPage()
+    {
+        $styleArray = ['','current','','',''];
+        $this->getHeader('Payment Successful', $styleArray);
+        require_once '../templates/processpayment.php';
+        $this->getFooter();
+    }
+
+    /**
+     * Shows all the orders place if we are a staff user
+     */
+    public function allOrdersAction()
+    {
+        if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor')
+        {
+            $modelF = new ModelFunctions();
+            $modelF->getAllOrders();
+        } else {
+            $_SESSION['error'] = ['You do not have the privileges to do that.'];
+            header('Location:index.php?action=index');
+        }
+    }
+
+    /**
+     * Shows the information that  is attached to one particular order
+     */
+    function getOrderInformationAction()
+    {
+        $validateF = new ValidateFunctions();
+        $orderCD = new OrderCrud();
+
+        $order = $orderCD->orderFromDatabase($validateF->sanitize($_GET['id']));
+        $text = new TextFunctions();
+        if (count($order) > 0) {
+            $address = explode(',', $order[0]['user_address']);
+            $decodedCart = json_decode($order[0]['user_items'], true);
+            $productInfo = $orderCD->getOrderItems($decodedCart);
+            $styleArray = ['','','current','',''];
+            $this->getHeader('Order Information', $styleArray);
+            require_once '../templates/orderinfo.php';
+            $this->getFooter();
+        } else {
+            $_SESSION['error'] = ['No order found, try again'];
+            header('Location:index.php?action=allorders');
+        }
+    }
+
+    /**
+     * Shows our account details
+     */
+    public function myAccountAction()
+    {
+        if(isset($_SESSION['id']))
+        {
+            $modelF = new ModelFunctions();
+            $validateF = new ValidateFunctions();
+            $modelF->getAccountInfo($validateF->sanitize($_SESSION['id']));
+        } else{
+            $_SESSION['error'] = ['Your must be logged in'];
+           header('Location:index.php?action=login');
+        }
+    }
+
+    /**
+     * Action if we are staff that we can update the status of our order
+     */
+    public function updateStatusAction()
+    {
+        $orderCD = new OrderCrud();
+        $validateF = new ValidateFunctions();
+        if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor')
+        {
+            $orderCD->updateOrderStatus($validateF->sanitize($_POST['order_status']), $validateF->sanitize($_GET['id']));
+            header("Location:index.php?action=allorders");
+        } else{
+            $_SESSION['error'] = ['You do not have privileges to do that.'];
+            header("Location:index.php?action=allorders");
+        }
+    }
+
+    /**
+     * Action to dispatch each of our products
+     */
+    public function dispatchAction()
+    {
+        $validateF = new ValidateFunctions();
+        $orderCD = new OrderCrud();
+        if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'admin')
+        {
+            $orderCD->dispatchOrder($validateF->sanitize($_GET['id']));
+            header("Location:index.php?action=allorders");
+        } else{
+            $_SESSION['error'] = ['You do not have privileges to do that.'];
+            header("Location:index.php?action=allorders");
+        }
+    }
+
+    /**
+     * shows all the previous orders place
+     */
+    public function orderHistoryAction()
+    {
+        if($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor')
+        {
+            $modelF = new ModelFunctions();
+            $modelF->getOrderHistory(0);
+        } else{
+            $_SESSION['error'] = ['You do not have privileges to do that.'];
+            header("Location:index.php?action=allorders");
+        }
+    }
+
+    /**
+     * shows the users previous orders
+     */
+    public function previousOrderAction()
+    {
+        if(isset($_SESSION['id']))
+        {
+            $modelF = new ModelFunctions();
+            $modelF->getOrderHistory($_SESSION['id']);
+        } else{
+            $_SESSION['error'] = ['Your must be logged in'];
+            header('Location:index.php?action=login');
+        }
+    }
+
+    /**
+     * gets our contact form. checks if we have sent the message and processes it
+     */
+    function contactFormAction()
+    {
+        $validateF = new ValidateFunctions();
+        $contact = new ContactFunctions();
+        if (isset($_GET['sent']) && $_GET['sent'] == true) {
+            if ($validateF->fieldsValid($_POST)) {
+                if ($contact->sentMessageToAddress($_POST)) {
+                    $_SESSION['success'] = ['Message sent successfully'];
+                } else {
+                    $_SESSION['error'] = ['Message Failed'];
+                }
+            }
+        }
+
+        $styleArray = ['current','','','',''];
+        $this->getHeader('Contact Us', $styleArray);
+        require_once '../templates/contactus.php';
+        $this->getFooter();
+    }
+
+    /**
+     * gets our site map
+     */
+    function getSiteMap()
+    {
+        $productRp = new ProductRepository();
+        $categorys = $productRp->getCategorys();
+        $styleArray = ['current','','','',''];
+        $this->getHeader('Sitemap', $styleArray);
+        require_once '../templates/sitemap.php';
+    }
+
+    /**
+     * action to change our css for the user.
+     */
+    function changeLook()
+    {
+        $styleChoice = $_SESSION['style'];
+        $_SESSION['style'] = (($styleChoice == 0)? 1 : 0);
+        $userCD = new UserCrud();
+        $userCD->updateUserStyle($_SESSION['id'], $_SESSION['style']);
+        header('Location:index.php?action=index');
+    }
+
+}

@@ -1,0 +1,31 @@
+<?php
+/**
+ *  comment
+ */
+
+namespace Itb;
+
+
+/**
+ * Class ContactFunctions
+ * @package Itb
+ */
+class ContactFunctions
+{
+
+    /**
+     *  Sends mail through the contact form and if it is successful, returns true else false
+     * @param array $post
+     * @return bool
+     */
+    function sentMessageToAddress($post)
+    {
+        $validateF = new ValidateFunctions();
+        $email = $validateF->sanitize($post['contact_email']);
+        $subject = $validateF->sanitize($post['subject']);
+        $message = $validateF->sanitize($post['message']);
+        $message = wordwrap($message, 90);
+        return mail($email, $subject, $message);
+    }
+
+}

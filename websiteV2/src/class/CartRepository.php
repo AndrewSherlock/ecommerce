@@ -1,0 +1,222 @@
+<?php
+
+/**
+ * comment
+ */
+namespace Itb;
+
+use PDO;
+use DateTime;
+
+/**
+ * Class CartRepository
+ * @package Itb
+ */
+class CartRepository
+{
+
+    /**
+     * Gets our cart from the database that has not been paid for and returns it to $_SESSION['cart']
+     * @param integer $id
+     * @return array
+     */
+    public function getCurrentCart($id)
+    {
+        $connect = new Config();
+        $currCart = $connect->connectPDO()->query("SELECT * FROM cart_db WHERE user_id = '$id' AND paid = 0");
+        $pdoCart = $currCart->fetch(PDO::FETCH_ASSOC);
+        if(!empty($pdoCart))
+        {
+            $cart = json_decode($pdoCart['cart'],true);
+        } else{
+            $cart = array();
+        }
+        return $cart;
+    }
+
+    /**
+     *  Takes in id of your product and then removes it from the cart and re-uploads the cart to the database as json string, if $emptycart is true,
+     * deletes the whole cart
+     * @param int $prodId
+     * @param bool $emptyCart
+     */
+    public function removeProduct($prodId, $emptyCart)
+    {
+        $connect = new Config();
+        $cart = $_SESSION['user_cart'];
+        $cartItemCount = count($cart);
+        $temp = [];
+        for($i = 0; $i < count($cart);$i++)
+        {
+            if($prodId != $cart[$i][0] && $cartItemCount > 1)
+            {
+                $temp[] = $cart[$i];
+            }
+        }
+
+        $json_cart = json_encode($temp);
+
+        if($cartItemCount == 1 || $emptyCart)
+        {
+            $sql = "DELETE FROM cart_db WHERE user_id =".$_SESSION['id'];
+        } else{
+            $sql = "UPDATE cart_db SET cart ='$json_cart' WHERE user_id =".$_SESSION['id'];
+        }
+
+        $connect->connectPDO()->query($sql);
+    }
+
+
+    /**
+     * Loops through each item size, checks if we already have the item in cart, if not adds new line, adds to original
+     * @param array $items
+     * @param array $newItem
+     * @return string $cart
+     */
+    public function checkItems($items, $newItem)
+    {
+        $temp = array();
+        $inCart = false;
+        $cart = '';
+
+        foreach ($items as $item)
+        {
+            if($item[0] == $newItem[0] && $item[1] == $newItem[1])
+            {
+                $cartQty = (int)$item[3];
+                $nextQty = (int)$newItem[3];
+                $item[3] = (string)($cartQty + $nextQty);
+                $inCart = true;
+            }
+            $temp[] = $item;
+        }
+
+        if(!$inCart)
+        {
+            $temp[] = $newItem;
+        }
+        $cart = json_encode($temp);
+        return $cart;
+    }
+
+    /**
+     *  Checks we are trying to add more then one, if we are adds to cart. if no gives error. Adds cart to database
+     * @param int $id
+     * @param string $size
+     * @param float $price
+     * @param int $qty
+     */
+    public function addToCartDatabase($id,$size, $price,$qty)
+    {
+        $connect = new Config();
+        if(!isset($_SESSION))
+        {
+            session_start();
+        }
+        if($qty > 0) {
+            $user_id = $_SESSION['id'];
+            $cartArray = $_SESSION['user_cart'];
+            $productArray = [$id, $size, $price, $qty];
+            $date = $this->getMonthAhead();
+
+            if (!empty($cartArray)) {
+
+                $cart = $this->checkItems($cartArray, $productArray);
+                $sql = "UPDATE cart_db SET cart = '$cart'" . ",expiry ='$date' WHERE user_id = '$user_id'";
+            } else {
+                $cart = array();
+                $cart[] = $productArray;
+                $cartString = json_encode($cart);
+                $sql = "INSERT INTO cart_db(cart,expiry,user_id) VALUES('$cartString','$date','$user_id')";
+            }
+
+            $connect->connectPDO()->query($sql);
+            $_SESSION['success'] = ['Product Added To Cart'];
+        } else {
+            $_SESSION['error'] = ['You must add more then on to the cart.'];
+        }
+    }
+
+    /**
+     * Gets our time a month ahead for the cart
+     * @return string
+     */
+    public function getMonthAhead()
+    {
+        $date = new DateTime();
+        $expDate = date_add($date,date_interval_create_from_date_string('30 days'));
+        $dateArray = (array)$expDate;
+        $dTime = rtrim($dateArray['date'],'.000000');
+        return $dTime;
+    }
+
+    /**
+     * Gets our cart items and gets use each one to compare from the database
+     * @param array $cartProducts
+     * @return array products to be checked before adding to database
+     */
+    public function getProducts($cartProducts)
+    {
+        $prodRp = new ProductRepository();
+        $validateF = new ValidateFunctions();
+        foreach ($cartProducts as $product) {
+            $id = $validateF->sanitize($product[0]);
+            $prodRp->addOneToProducts($id);
+        }
+
+        $products = $prodRp->getAllProducts();
+
+        $productToCheck = [];
+        for ($i = 0; $i < count($cartProducts); $i++) {
+            for ($c = 0; $c < count($products); $c++) {
+                if ($cartProducts[$i][0] == $products[$c][0]) {
+                    $prodObj = new Product();
+                    $prodObj->copyToProduct(json_decode($products[$c]['product_info'], true));
+                    $products[$c]['product_info'] = $prodObj;
+                    $productToCheck[] = $products[$c];
+                }
+            }
+        }
+        return $productToCheck;
+    }
+
+    /**
+     * shows use our cart contents and opens up the cart page
+     * @return array
+     */
+    function getCart()
+    {
+        $connect = new Config();
+        $text = new TextFunctions();
+        $sql = "SELECT * FROM products_db";
+        $query = $connect->connectPDO()->prepare($sql);
+        $query->execute();
+        $cartProducts = $query->fetchAll(PDO::FETCH_ASSOC);
+        $productToGetInfo = [];
+        $cart = $_SESSION['user_cart'];
+        for($i = 0; $i < count($_SESSION['user_cart']);$i++)
+        {
+            for($c = 0; $c < count($cartProducts); $c++)
+            {
+                if($cartProducts[$c]['id'] == $cart[$i][0])
+                {
+                    $obj = new Product();
+                    $obj->copyToProduct(json_decode($cartProducts[$c]['product_info'],true));
+                    $cartProducts[$c]['product_info'] = $obj;
+                    $productToGetInfo[] = $cartProducts[$c];
+                    break;
+                }
+            }
+        }
+        if($_GET['action'] == 'cart')
+        {
+            $mainC = new MainController();
+            $styleArray = ['','','','current',''];
+            $mainC->getHeader('Cart', $styleArray);
+            require_once '../templates/cart.php';
+        } elseif ($_GET['action'] == 'store'){
+            return $productToGetInfo;
+        }
+    }
+
+}

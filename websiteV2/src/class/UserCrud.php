@@ -1,0 +1,386 @@
+<?php
+/**
+ *  comment
+ */
+namespace Itb;
+
+use PDO;
+
+/**
+ * Class UserCrud
+ * @package Itb
+ */
+class UserCrud
+{
+    /**
+     * checks our user form values and validates it, if it passes returns true, else false
+     * @param array $postInfo
+     * @param array $file
+     * @param array $required
+     * @return bool
+     */
+    function checkUserInfo($postInfo, $file, $required)
+    {
+        $imageRp = new ImageRespository();
+        $validateF = new ValidateFunctions();
+
+        for ($i = 0; $i < count($required); $i++) {
+            if (!$validateF->checkFieldForBlank($required[$i])) {
+                $_SESSION['error'] = ['Please ensure all fields are filled out.'];
+                return false;
+            }
+        }
+        if (!$validateF->checkEmail($postInfo['user_email'])) {
+            $_SESSION['error'] = ['Please Enter a valid email.'];
+            return false;
+        }
+
+            if (!$validateF->emailExists($postInfo['user_email'])) {
+                if(!$validateF->emailExists($postInfo['user_email']))
+                {
+                    if(!$validateF->belongToCurrentUser($postInfo['user_email'])){
+                        $_SESSION['error'] = ['Email is already in use.'];
+                        return false;
+                    }
+                }
+            }
+
+
+
+        if ($_GET['action'] != 'edituser' || $_SESSION['id'] != $_GET['id']) {
+            if (isset($postInfo['user_password']) && !$validateF->passwordCheck($postInfo['user_password'], $postInfo['user_confirm'])) {
+                $_SESSION['error'] = ['Passwords do not match'];
+                return false;
+            }
+        }
+
+        if (!$validateF->accountType($postInfo)) {
+            $_SESSION['error'] = ['Please pick an account type.'];
+            return false;
+        }
+
+        if (!empty($file['file_upload']['name'] != '')) {
+
+            $size = $file['file_upload']['size'];
+            if (!$imageRp->checkImgSize($size, 15000000)) {
+                $_SESSION['error'] = ['Image Size is greater then the maximum size.'];
+                return false;
+            }
+
+            $fileType = $file['file_upload']['type'];
+            if (!$imageRp->isImage($fileType)) {
+                $_SESSION['error'] = ['Must be image type'];
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * uploads our user image and returns the link of the user image
+     * @param array $file
+     * @return string
+     */
+    function uploadUserImage($file)
+    {
+        $fileLoc = '';
+        $imageRp = new ImageRespository();
+        $validateF = new ValidateFunctions();
+
+        if ($file['file_upload']['name'] != '' && $_GET['action'] != 'edituser') {
+            $fileLoc = $imageRp->uploadImage($file, $imageRp->getNextId('user_db'), 'user');
+        } else if ($file['file_upload']['name'] == '' && $_GET['action'] != 'edituser') {
+            $fileLoc = DEFAULT_IMAGE;
+        } else if ($file['file_upload']['name'] != '' && $_GET['action'] == 'edituser') {
+            $_userRp = new UserRepository();
+            $user = $_userRp->getOneFromDB($validateF->sanitize($_GET['id']));
+            $userObj = new User();
+            $userObj->copyToObject(json_decode($user[3], true));
+            $prevImg = $userObj->getImage();
+
+            if ($prevImg != DEFAULT_IMAGE) {
+                unlink($_SERVER['DOCUMENT_ROOT'] . $prevImg);
+            }
+            $fileLoc = $imageRp->uploadImage($file, $_GET['id'], 'user');
+            } else if ($file['file_upload']['name'] == '' && $_GET['action'] == 'edituser'){
+            $_userRp = new UserRepository();
+            $user = $_userRp->getOneFromDB($validateF->sanitize($_GET['id']));
+            $userObj = new User();
+            $userObj->copyToObject(json_decode($user[3], true));
+            $fileLoc = $userObj->getImage();
+        }else {
+            $fileLoc = DEFAULT_IMAGE;
+        }
+        return $fileLoc;
+    }
+
+    /**
+     * sets our user info into a new object and returns it encoded to json
+     * @param array $userInfo
+     * @param array $file
+     * @param string $pass
+     * @param string $add
+     * @return string
+     */
+    function buildUserObject($userInfo, $file, $pass, $add)
+    {
+
+        $user = new User();
+        $validateF = new ValidateFunctions();
+        $user->setName($validateF->sanitize($userInfo['user_name']));
+        $address = $validateF->sanitize($userInfo['user_street1']) . ', ' . $validateF->sanitize($userInfo['user_city']) . ', ' . $validateF->sanitize($userInfo['user_county']) . ', '
+            . $validateF->sanitize($userInfo['user_country']);
+        $user->setAddress($address);
+        $user->setEmail($validateF->sanitize($userInfo['user_email']));
+        $user->setPhone($validateF->sanitize($userInfo['user_phone']));
+
+        if($_GET['action'] == 'edituser')
+        {
+            if ($_SESSION['id'] == $_GET['id']) {
+                $userPass = $validateF->sanitize($userInfo['user_password']);
+            } else {
+                $userPass = $user->getPassword();
+            }
+        } else{
+            $userPass = $validateF->sanitize($userInfo['user_password']);
+        }
+
+
+        $hashedPass = password_hash($userPass, PASSWORD_BCRYPT);
+        $user->setPassword($pass);
+        if ($_GET['action'] == 'edituser' || isset($_GET['id']) && $_GET['id'] != $_SESSION['id']) {
+            $user->setPassword($pass);
+        } else {
+            $user->setPassword($hashedPass);
+        }
+        $user->setAccountType($this->getAccountTypeName($userInfo));
+        $user->setImage($file);
+        $user->setAddedBy($add);
+        return $user->userToJson();
+    }
+
+    /**
+     * adds our updates/new user to the database
+     * @param string $user
+     * @param array $post
+     */
+    function addUserToDatabase($user, $post)
+    {
+        $connect = new Config();
+        $text = new TextFunctions();
+        $validateF = new ValidateFunctions();
+        $newDate = '0000-00-00 00:00:00';
+        $curDate = date("Y-m-d H:i:s");
+        $email = $validateF->sanitize($post['user_email']);
+        $pass = $text->password_encryption($validateF->sanitize($post['user_password']));
+        $curDate = date("Y-m-d H:i:s");
+        $sql = 'INSERT INTO user_db(user_info, user_email, user_password ,join_date,last_login) VALUES (:info,:email,:password,:cur_date,:last_login)';
+        $query = $connect->connectPDO()->prepare($sql);
+        $query->bindParam(':info', $user, \PDO::PARAM_STR, 200);
+        $query->bindParam(':email', $email, \PDO::PARAM_STR);
+        $query->bindParam(':password', $pass, \PDO::PARAM_STR);
+        $query->bindParam(':cur_date', $curDate, \PDO::PARAM_STR);
+        $query->bindParam(':last_login', $newDate, \PDO::PARAM_STR);
+        $query->execute();
+    }
+
+    /**
+     * updates our user in the database
+     * @param string $user
+     * @param int $id
+     * @param string $email
+     */
+    function updateUserToDatabase($user, $id, $email)
+    {
+        $connect = new Config();
+        $sql = 'UPDATE user_db SET user_info = :info, user_email = :email WHERE id = :id';
+        $query = $connect->connectPDO()->prepare($sql);
+        $query->bindParam(':info', $user, \PDO::PARAM_STR, 200);
+        $query->bindParam(':email', $email, \PDO::PARAM_STR, 200);
+        $query->bindParam(':id', $id, \PDO::PARAM_INT);
+        $query->execute();
+    }
+
+    /**
+     * gets the user from the database with id, returns if found, else displays message
+     * @param int $id
+     * @return array
+     */
+    function getUserFromDatabase($id)
+    {
+        $connect = new Config();
+        $sql = 'SELECT * FROM user_db WHERE id = :id';
+        $query = $connect->connectPDO()->prepare($sql);
+        $query->bindParam(':id', $id, \PDO::PARAM_INT);
+        $query->execute();
+
+        if ($user = $query->fetch(PDO::FETCH_ASSOC)) {
+            return $user;
+        } else {
+            $_SESSION['error'] = ['No Such User Found'];
+        }
+    }
+
+    /**
+     * returns a list of users that have been converted to objects
+     * @return array
+     */
+    function getUserArray()
+    {
+        $userRP = new UserRepository();
+        $users = $userRP->getAllUsers();
+        $modifedUserList = [];
+        foreach ($users as $user) {
+            $obj = new User();
+            $obj->userFromJson($user[3]);
+            $user[1] = $obj;
+            $modifedUserList[] = $user;
+        }
+        return $modifedUserList;
+    }
+
+    /**
+     * removes the user from the database
+     * @param int $id
+     */
+    function removeUser($id)
+    {
+        $connect = new Config();
+        $sql = 'DELETE FROM user_db WHERE id = :id';
+        $query = $connect->connectPDO()->prepare($sql);
+        $query->bindParam(':id', $id, \PDO::PARAM_INT);
+        $query->execute();
+    }
+
+    /**
+     *  function that removes the information that is attached to the user, calls the remove user function once the user is found
+     */
+    function deleteUser()
+    {
+        $validateF = new ValidateFunctions();
+        if ($_SESSION['id'] == $_GET['']) {
+            logUserOut();
+        }
+        $id = $validateF->sanitize($_GET['id']);
+        $userRp = new UserRepository();;
+        $hasUser = $userRp->getOneFromDB($id);
+        if ($hasUser != 0) {
+            $this->deleteUserImage($id);
+            $this->removeUser($id);
+            $_SESSION['success'] = ['User deleted successfully'];
+        } else {
+            $_SESSION['error'] = ['No user found.'];
+        }
+        header('Location:index.php?action=adminUsers');
+    }
+
+    /**
+     *  deletes the user image from root
+     * @param int $id
+     */
+    function deleteUserImage($id)
+    {
+        $connect = new Config();
+        $sql = "SELECT user_info FROM user_db WHERE id = :id";
+        $query = $connect->connectPDO()->prepare($sql);
+        $query->bindParam(':id', $id, \PDO::PARAM_INT);
+        $query->execute();
+        $delImage = $query->fetch();
+
+        $decoded = json_decode($delImage['user_info'], true);
+        $image = $decoded['user_image'];
+
+        if ($delImage != DEFAULT_IMAGE) {
+            unlink($_SERVER['DOCUMENT_ROOT'] . $image);
+        }
+    }
+
+    /**
+     *  controls the edit user action
+     */
+    function editUserAction()
+    {
+        $userRp = new UserRepository();
+        $validateF = new ValidateFunctions();
+        $user = $userRp->getOneFromDB($validateF->sanitize($_GET['id']));
+        if ($user != 0) {
+            $obj_array = json_decode($user[3], true);
+           // var_dump($obj_array); die();
+            $pass = $obj_array['user_password'];
+            $addedBy = $obj_array['user_added'];
+
+            if (!empty($_POST)) {
+                $requiredFields = [$_POST['user_name'], $_POST['user_street1'], $_POST['user_city'], $_POST['user_country'], $_POST['user_phone'], $_POST['user_email']];
+
+                if ($_SESSION['id'] == $_GET['id']) {
+                    $requiredFields = [$_POST['user_name'], $_POST['user_street1'], $_POST['user_city'], $_POST['user_country'], $_POST['user_phone'], $_POST['user_email'], $_POST['user_password'], $_POST['user_confirm']];
+                }
+                if ($this->checkUserInfo($_POST, $_FILES, $requiredFields)) {
+                    $file = $this->uploadUserImage($_FILES);
+                    $userInfo = $this->buildUserObject($_POST, $file, $pass, $addedBy);
+                    $email = $validateF->sanitize($_POST['user_email']);
+                    $this->updateUserToDatabase($userInfo, $validateF->sanitize($_GET['id']), $email);
+                    $_SESSION['success'] = ['User edited successfully.'];
+
+                }
+            } else{
+                $modelF = new ModelFunctions();
+                $modelF->getAddUserForm();
+            }
+        } else {
+            $_SESSION['error'] = ['User not found.'];
+            header('Location:index.php?action=adminUsers');
+        }
+
+    }
+
+    /**
+     * sets the last login time to the database
+     * @param int $id
+     */
+    function updateLoginTime($id)
+    {
+        $connect = new Config();
+        $date = date("Y-m-d H:i:s");
+        $sql = "UPDATE user_db SET last_login = :last_login WHERE id = :id";
+        $query = $connect->connectPDO()->prepare($sql);
+        $query->bindParam(':last_login', $date);
+        $query->bindParam(':id', $id, \PDO::PARAM_INT);
+        $query->execute();
+    }
+
+    /**
+     * gets the chosen value chosen by the user
+     * @param array $postInfo
+     * @return string
+     */
+    function getAccountTypeName($postInfo)
+    {
+        $accountType = ['regular', 'gold', 'editor', 'admin'];
+
+        foreach ($postInfo as $field) {
+            if (in_array($field, $accountType)) {
+                return $field;
+            }
+        }
+        return 'something went very wrong';
+    }
+
+    /**
+     * updates the user style
+     * @param int $id
+     * @param $style
+     */
+    function updateUserStyle($id, $style)
+    {
+        $connect = new Config();
+        $sql = 'UPDATE user_db SET style = :style WHERE id = :id';
+        $query = $connect->connectPDO()->prepare($sql);
+        $query->bindParam(':style', $style, \PDO::PARAM_INT);
+        $query->bindParam(':id', $id, \PDO::PARAM_INT);
+        $query->execute();
+    }
+}
+
+

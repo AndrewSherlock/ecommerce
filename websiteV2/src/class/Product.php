@@ -1,0 +1,167 @@
+<?php
+/**
+ * Comment
+ */
+
+namespace Itb;
+/**
+ * Class Product
+ * @package Itb
+ */
+
+class Product
+{
+    /**
+     * @var string name
+     */
+    private $name;
+    /**
+     * @var string description
+     */
+    private $description;
+    /**
+     * @var string imagelink
+     */
+    private $image;
+    /**
+     * @var string size
+     */
+    private $size;
+    /**
+     * @var float price
+     */
+    private $price;
+
+    /**
+     * gets our name
+     * @return string
+     */
+    public function getName()
+    {
+        return $this->name;
+    }
+
+    /**
+     * sets the name of our user
+     * @param string $name
+     */
+    public function setName($name)
+    {
+        $this->name = $name;
+    }
+
+    /**
+     * Gets the description of our user
+     * @return string description
+     */
+    public function getDescription()
+    {
+        return $this->description;
+    }
+
+    /**
+     * sets the description of our user
+     * @param string $description
+     */
+    public function setDescription($description)
+    {
+        $this->description = $description;
+    }
+
+    /**
+     * gets the image of user
+     * @return string
+     */
+    public function getImage()
+    {
+        return $this->image;
+    }
+
+    /**
+     * sets the image of our user
+     * @param string $image
+     */
+    public function setImage($image)
+    {
+        $this->image = $image;
+    }
+
+    /**
+     * gets the size string
+     * @return string
+     */
+    public function getSize()
+    {
+        return $this->size;
+    }
+
+    /**
+     * sets the size array
+     * @param string $size
+     */
+    public function setSize($size)
+    {
+        $this->size = $size;
+    }
+
+    /**
+     * Gets the price our the user
+     * @return float
+     */
+    public function getPrice()
+    {
+        return $this->price;
+    }
+
+    /**
+     * Sets the price
+     * @param float $price
+     */
+    public function setPrice($price)
+    {
+        $this->price = $price;
+    }
+
+    /**
+     * Encodes the product to a json string
+     * @return string
+     */
+    public function productToJson()
+    {
+        return json_encode([
+            'product_name'       => $this->name,
+            'product_desc'     => $this->description,
+            'product_size'     => $this->size,
+            'product_image'   => $this->image,
+            'product_price'   => $this->price,
+        ]);
+    }
+
+    /**
+     * Decodes the product from json
+     * @param string $jsonString
+     */
+    public function productFromJson($jsonString)
+    {
+        $product = json_decode($jsonString, true);
+        $this->name = $product['product_name'];
+        $this->description = $product['product_desc'];
+        $this->size = $product['product_size'];
+        $this->image = $product['product_image'];
+        $this->price = $product['product_price'];
+    }
+
+    /**
+     * sets the array to a product object
+     * @param array $array
+     */
+    public function copyToProduct($array)
+    {
+        $this->name = $array['product_name'];
+        $this->description = $array['product_desc'];
+        $this->size = $array['product_size'];
+        $this->image = $array['product_image'];
+        $this->price = $array['product_price'];
+    }
+
+}

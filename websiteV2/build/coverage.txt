@@ -1,0 +1,12 @@
+
+
+Code Coverage Report:      
+  2016-11-28 23:32:50      
+                           
+ Summary:                  
+  Classes:  5.88% (1/17)   
+  Methods:  7.43% (13/175) 
+  Lines:    1.67% (34/2037)
+
+\Itb::Product
+  Methods: 100.00% (13/13)   Lines: 100.00% ( 34/ 34)

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="mattsmithdev Test Suite" tests="8" assertions="8" failures="0" errors="0" time="0.024226">
+    <testsuite name="Itb\ProductClassTest" file="C:\Users\andrew\Desktop\websiteV2\tests\ProductClassTest.php" tests="8" assertions="8" failures="0" errors="0" time="0.024226">
+      <testcase name="testName" class="Itb\ProductClassTest" file="C:\Users\andrew\Desktop\websiteV2\tests\ProductClassTest.php" line="14" assertions="1" time="0.001997"/>
+      <testcase name="testDescription" class="Itb\ProductClassTest" file="C:\Users\andrew\Desktop\websiteV2\tests\ProductClassTest.php" line="23" assertions="1" time="0.001652"/>
+      <testcase name="testImage" class="Itb\ProductClassTest" file="C:\Users\andrew\Desktop\websiteV2\tests\ProductClassTest.php" line="32" assertions="1" time="0.001768"/>
+      <testcase name="testSize" class="Itb\ProductClassTest" file="C:\Users\andrew\Desktop\websiteV2\tests\ProductClassTest.php" line="41" assertions="1" time="0.001499"/>
+      <testcase name="testPrice" class="Itb\ProductClassTest" file="C:\Users\andrew\Desktop\websiteV2\tests\ProductClassTest.php" line="51" assertions="1" time="0.001511"/>
+      <testcase name="testIsJson" class="Itb\ProductClassTest" file="C:\Users\andrew\Desktop\websiteV2\tests\ProductClassTest.php" line="60" assertions="1" time="0.001639"/>
+      <testcase name="testProductFromJson" class="Itb\ProductClassTest" file="C:\Users\andrew\Desktop\websiteV2\tests\ProductClassTest.php" line="74" assertions="1" time="0.007314"/>
+      <testcase name="testCopyToProduct" class="Itb\ProductClassTest" file="C:\Users\andrew\Desktop\websiteV2\tests\ProductClassTest.php" line="91" assertions="1" time="0.006846"/>
+    </testsuite>
+  </testsuite>
+</testsuites>

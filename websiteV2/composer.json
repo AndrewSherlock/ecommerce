@@ -1,0 +1,17 @@
+{
+    "scripts":{
+        "doc":"php phpDocumentor.phar",
+        "test":"php phpunit.phar"
+    },
+    "autoload":{
+        "psr-4":{
+            "Itb\\":"src/class"
+        }
+    },
+
+    "require": {
+        "twbs/bootstrap": "^3.3",
+        "stripe/stripe-php": "^4.2",
+        "phpunit/phpunit":"^5.6"
+    }
+}

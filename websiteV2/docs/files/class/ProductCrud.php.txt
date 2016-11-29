@@ -1,0 +1,377 @@
+<?php
+/**
+ * comment
+ */
+
+namespace Itb;
+
+    use Itb\Product;
+    use Itb\ImageRespository;
+    use Itb\ValidateFunctions;
+    use Itb\CheckoutFunctions;
+    use PDO;
+
+    /**
+     * Class ProductCrud
+     * @package Itb
+     */
+    class ProductCrud
+    {
+
+        /**
+         * makes sure our product form is ok when updating/add new product
+         * if form is ok, then true, else returns false
+         * @param array $post
+         * @param array $file
+         * @param array $required
+         * @return bool
+         */
+        function checkProductForm($post, $file, $required)
+        {
+            $imageRp = new ImageRespository();
+            $validateF = new ValidateFunctions();
+            for ($i = 0; $i < count($required); $i++) {
+                if (!$validateF->checkFieldForBlank($required[$i])) {
+                    $_SESSION['error'] = ['Please ensure all fields are filled out.'];
+                    break;
+                }
+            }
+
+            if (!$validateF->checkFieldForBlank($post['product_sizeA']) && !$validateF->checkFieldForBlank($post['product_qtyA']) && empty($errors)) {
+                $_SESSION['error'] = ['Please add at least one size.'];
+            }
+
+            if (!empty($file['file_upload']['name'] != '') && empty($errors)) {
+                $size = $file['file_upload']['size'];
+                if (!$imageRp->checkImgSize($size, 15000000)) {
+                    $_SESSION['error'] = ['Image Size is greater then the maximum size.'];
+                }
+
+                $fileType = $file['file_upload']['type'];
+                if (!$imageRp->isImage($fileType)) {
+                    $_SESSION['error'] = ['Must be image type'];
+                }
+            }
+            if (!empty($_SESSION['error'])) {
+                return false;
+            }
+            return true;
+        }
+
+        /**
+         * Function that uploads image for file, returns the link,
+         * @param array $file
+         * @return string
+         */
+        function uploadProductImage($file)
+        {
+            $fileLoc = '';
+            $imageRp = new ImageRespository();
+            $validateF = new ValidateFunctions();
+
+            if ($file['file_upload']['name'] != '' && $_GET['action'] != 'updateproduct') {
+                $fileLoc = $imageRp->uploadImage($file, $imageRp->getNextId('products_db'), 'product');
+            } else if ($file['file_upload']['name'] == '' && $_GET['action'] == 'updateproduct') {
+                $prevImage = $this->getPreviousImage($validateF->sanitize($_GET['id']));
+                if ($prevImage == DEFAULT_PRODUCT_IMAGE) {
+                    $fileLoc = DEFAULT_PRODUCT_IMAGE;
+                } else {
+                    $fileLoc = $prevImage;
+                }
+
+            } else if ($file['file_upload']['name'] != '' && $_GET['action'] == 'updateproduct') {
+                $prevImage = $this->getPreviousImage($validateF->sanitize($_GET['id']));
+                unlink($_SERVER['DOCUMENT_ROOT'] . $prevImage);
+                $fileLoc = $imageRp->uploadImage($file, $_GET['id'], 'product');
+            }
+            //var_dump($fileLoc); die();
+            return $fileLoc;
+        }
+
+        /**
+         * Gets the last image that is associated with a product, returns image link
+         * @param int $id
+         * @return string
+         */
+        function getPreviousImage($id)
+        {
+            $img = '';
+            $prevImageSql = "SELECT product_info FROM products_db WHERE id = :id";
+            $query = connectPDO()->prepare($prevImageSql);
+            $query->bindParam(':id', $id, \PDO::PARAM_INT);
+            $query->execute();
+
+            if ($prod = $query->fetch(PDO::FETCH_ASSOC)) {
+                $prodInfo = json_decode($prod['product_info'], true);
+                $img = $prodInfo['product_image'];
+            }
+            return $img;
+        }
+
+        /**
+         * Takes our product deletes and turns it into a json string for uploading to database
+         * @param array $productInfo
+         * @param array $file
+         * @return string
+         */
+        function buildProductObject($productInfo, $file)
+        {
+            $product = new Product();
+            $text = new TextFunctions();
+            $validateF = new ValidateFunctions();
+
+            $product->setName($validateF->sanitize($productInfo['product_name']));
+            $product->setDescription($validateF->sanitize($productInfo['product_desc']));
+            $product->setPrice($validateF->sanitize($productInfo['product_price']));
+            $product->setSize($text->buildSizesForDatabase($productInfo));
+            $product->setImage($file);
+            $prodJson = $product->productToJson();
+
+            return $prodJson;
+        }
+
+        /**
+         * adds the product to our database
+         * @param array $productInfo
+         * @param array $post
+         */
+        function addProductToDatabase($productInfo, $post)
+        {
+            $validateF = new ValidateFunctions();
+            $category = $validateF->sanitize($post['product_category']);
+            $sql = 'INSERT INTO products_db(product_info, product_category) VALUES (:info, :cat)';
+            $query = connectPDO()->prepare($sql);
+            $query->bindParam(':info', $productInfo, \PDO::PARAM_STR);
+            $query->bindParam(':cat', $category, \PDO::PARAM_INT);
+            $query->execute();
+        }
+
+        /**
+         * Updates product in the database
+         * @param array $productInfo
+         * @param array $post
+         * @param int $id
+         */
+        function updateProductToDatabase($productInfo, $post, $id)
+        {
+            $validateF = new ValidateFunctions();
+            $category = $validateF->sanitize($post['product_category']);
+            $sql = 'UPDATE products_db SET product_info = :info, product_category = :cat WHERE id = :id';
+            $query = connectPDO()->prepare($sql);
+            $query->bindParam(':info', $productInfo, \PDO::PARAM_STR);
+            $query->bindParam(':cat', $category, \PDO::PARAM_INT);
+            $query->bindParam(':id', $id, \PDO::PARAM_INT);
+            $query->execute();
+        }
+
+        /**
+         * Updates whether a product is featured or not
+         * @param int $id
+         */
+        function changeFeature($id)
+        {
+            $sql = "SELECT * FROM products_db WHERE id = :id";
+            $query = connectPDO()->prepare($sql);
+            $query->bindParam(':id', $id, \PDO::PARAM_INT);
+            $query->execute();
+
+            $product = $query->fetch();
+            $featNum = $product['product_featured'];
+            $featNum = (($featNum == 0)) ? 1 : 0;
+
+            $sqlFeatured = "UPDATE products_db SET product_featured = :featured WHERE id = :id";
+            $featQuery = connectPDO()->prepare($sqlFeatured);
+            $featQuery->bindParam(':id', $id, \PDO::PARAM_INT);
+            $featQuery->bindParam(':featured', $featNum, \PDO::PARAM_INT);
+            $featQuery->execute();
+        }
+
+        /**
+         * Archives our product, doesnt delete as will cause probelms with our figures in admin
+         * @param int $id
+         * @return string
+         */
+        function archiveProduct($id)
+        {
+            $prodRp = new ProductRepository();
+            $product = $prodRp->getOneFromDb($id);
+            if ($product == 0) {
+                $arch = 'Product not found.';
+            } else {
+                $productArchived = $product['product_archived'];
+                $archNum = (($productArchived == 0) ? 1 : 0);
+                $arch = (($archNum == 0) ? 'unarchived' : 'archived');
+
+                $sql = "UPDATE products_db SET product_archived = :arch WHERE id =  :id";
+                $query = connectPDO()->prepare($sql);
+                $query->bindParam(':arch', $archNum, \PDO::PARAM_INT);
+                $query->bindParam(':id', $id, \PDO::PARAM_INT);
+                $query->execute();
+            }
+            return $arch;
+        }
+
+        /**
+         * updates the new qty in the database when we sell a item
+         * @param array $orderItems
+         */
+        function updateQtyInDb($orderItems)
+        {
+            $prodToUpdate = new ProductRepository();
+            $text = new TextFunctions();
+            $checkoutF = new CheckoutFunctions();
+            $finishSize = '';
+            foreach ($orderItems as $orderItem) {
+                $prod = $prodToUpdate->getOneFromDb($orderItem[0]);
+                $prodInfo = json_decode($prod['product_info'], true);
+                $prodSizes = $text->deconstructString($prodInfo['product_size']);
+                $temp = [];
+                foreach ($prodSizes as $size) {
+                    if ($size[0] == $orderItem[1]) {
+                        $size[1] = (int)$size[1] - (int)$orderItem[3];
+                        $checkoutF->addOneToStats($orderItem[0], $orderItem[3]); // adds qty to our product sold database
+                        $temp[] = [$size[0], $size[1]];
+                    } else {
+                        $temp[] = [$size[0], $size[1]];
+                    }
+                }
+                $finishSize = $text->buildNewQty($temp);
+                $prodInfo['product_size'] = $finishSize;
+                $json_prod = json_encode($prodInfo);
+                $this->updateDatabaseQty($json_prod, $orderItem[0]);
+            }
+        }
+
+        /**
+         * Called by updateQtyInDatabase, is a function to run the update query
+         * @param string $json_string
+         * @param int $id
+         */
+        function updateDatabaseQty($json_string, $id)
+        {
+            $sql = "UPDATE products_db SET product_info = :info WHERE id = :id";
+            $query = connectPDO()->prepare($sql);
+            $query->bindParam(':id', $id, \PDO::PARAM_INT);
+            $query->bindParam(':info', $json_string, \PDO::PARAM_STR);
+            $query->execute();
+        }
+
+        /**
+         * A query to get products for store home
+         * @return array
+         */
+        function getProductsForStoreHome()
+        {
+            $prodRP = new ProductRepository();
+            $validateF = new ValidateFunctions();
+            if (isset($_GET['cat'])) {
+                $cat = $validateF->sanitize($_GET['cat']);
+                $sql = "SELECT * FROM products_db WHERE product_category = :cat AND product_archived = 0";
+                $query = connectPDO()->prepare($sql);
+                $query->bindParam(':cat', $cat, \PDO::PARAM_INT);
+            } else {
+                $sql = "SELECT * FROM products_db WHERE product_archived = 0 ORDER BY product_sold LIMIT 6";
+                $query = connectPDO()->prepare($sql);
+            }
+            $query->execute();
+
+            $products = $query->fetchAll();
+            $newProducts = [];
+            foreach ($products as $product) {
+                $productObj = new Product();
+                $productObj->copyToProduct(json_decode($product[2], true));
+                $product[2] = $productObj;
+                $newProducts[] = $product;
+            }
+            return $newProducts;
+        }
+
+        /**
+         *  add product controller function
+         */
+        function addProductAction()
+        {
+            $required = [$_POST['product_name'], $_POST['product_price'], $_POST['product_category'], $_POST['product_desc']];
+            if ($_SESSION['account_type'] == 'admin' || $_SESSION['account_type'] == 'editor') {
+                if ($this->checkProductForm($_POST, $_FILES, $required)) {
+                    $file = $this->uploadProductImage($_FILES);
+                    $jsonObject = $this->buildProductObject($_POST, $file);
+                    $this->addProductToDatabase($jsonObject, $_POST);
+                    $_SESSION['success'] = ['Product Successfully added'];
+                }
+                header('Location:index.php?action=adminProducts');
+            } else {
+                $_SESSION['error'] = ['You do not have the privileges to do that.'];
+                header('Location:index.php?action=index');
+            }
+        }
+
+        /**
+         *  action to archive product
+         */
+        function archiveProductAction()
+        {
+            if ($_GET['action'] == 'archive' && isset($_GET['id'])) {
+                $opt = $this->archiveProduct($_GET['id']);
+                if ($opt == 'Product not found.') {
+                    $_SESSION['error'] = [$opt];
+                } else {
+                    $_SESSION['success'] = ["Product $opt."];
+                }
+                header('Location:index.php?action=adminProducts');
+            } else {
+                $_SESSION['error'] = ['No product selected to edit.'];
+                header('Location:index.php?action=adminProducts');
+            }
+        }
+
+        /**
+         * Update product controller
+         */
+        function updateProductsAction()
+        {
+            if (!empty($_POST)) {
+                $required = [$_POST['product_name'], $_POST['product_price'], $_POST['product_category'], $_POST['product_desc']];
+                if ($this->checkProductForm($_POST, $_FILES, $required)) {
+                    $file = $this->uploadProductImage($_FILES);
+                    $jsonObject = $this->buildProductObject($_POST, $file);
+                    $this->updateProductToDatabase($jsonObject, $_POST, $_GET['id']);
+                    $_SESSION['success'] = ['Product Successfully added'];
+                }
+                header('Location:index.php?action=adminProducts');
+            }
+        }
+
+        /**
+         *  controller to change feature
+         */
+        function featureAction()
+        {
+            if ($_SESSION['account_type'] == 'editor' || $_SESSION['account_type'] == 'admin') {
+                if ($_GET['action'] == 'feature' && isset($_GET['id'])) {
+                    $this->changeFeature($_GET['id']);
+                    $_SESSION['success'] = ['Product feature setting changed.'];
+                    header('Location:index.php?action=adminProducts');
+                } else {
+                    $_SESSION['error'] = ['No product selected to edit.'];
+                    header('Location:index.php?action=adminProducts');
+                }
+            }
+        }
+
+        /**
+         * Sets the product discount in the database,
+         * @param float $discount
+         * @param int $id
+         */
+        function updateProductDiscount($discount, $id)
+        {
+            $text = new TextFunctions();
+            $discount = $text->floatToPercent($discount);
+            $sql = "UPDATE products_db SET product_discount = :discount WHERE id = :id";
+            $query = connectPDO()->prepare($sql);
+            $query->bindParam(':discount', $discount, \PDO::PARAM_INT);
+            $query->bindParam(':id', $id, \PDO::PARAM_INT);
+            $query->execute();
+        }
+    }

@@ -1,0 +1,10 @@
+TAP version 13
+ok 1 - Itb\ProductClassTest::testName
+ok 2 - Itb\ProductClassTest::testDescription
+ok 3 - Itb\ProductClassTest::testImage
+ok 4 - Itb\ProductClassTest::testSize
+ok 5 - Itb\ProductClassTest::testPrice
+ok 6 - Itb\ProductClassTest::testIsJson
+ok 7 - Itb\ProductClassTest::testProductFromJson
+ok 8 - Itb\ProductClassTest::testCopyToProduct
+1..8

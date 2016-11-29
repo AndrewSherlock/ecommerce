@@ -1,0 +1,90 @@
+<?php
+/**
+ *  Comment
+ */
+
+namespace Itb;
+
+
+/**
+ * Class CheckoutFunctions
+ * @package Itb
+ */
+class CheckoutFunctions
+{
+
+    /**
+     * When we get a order for each of our product, it adds the number of items sold to our stats in the database
+     * @param int $id
+     * @param int $qty
+     */
+    function addOneToStats($id, $qty)
+    {
+        $connect = new Config();
+        $searchSql = "SELECT product_sold FROM products_db WHERE id = :id";
+        $query = $connect->connectPDO()->prepare($searchSql);
+        $query->bindParam(':id', $id, \PDO::PARAM_INT);
+        $query->execute();
+        $productCount = $query->fetch();
+
+        $qty = $qty + $productCount['product_sold'];
+
+        $sql = "UPDATE products_db SET product_sold = :qty WHERE id = :id";
+        $updateQuery = connectPDO()->prepare($sql);
+        $updateQuery->bindParam(':qty', $qty, \PDO::PARAM_INT);
+        $updateQuery->bindParam(':id', $id, \PDO::PARAM_INT);
+        $updateQuery->execute();
+    }
+
+    /**
+     * for use with stripe for the checkout system.
+     * @param array $post
+     * @param array $user
+     */
+    function chargeCard($post, $user)
+    {
+        $validateF = new ValidateFunctions();
+        $token  = $post['stripeToken'];
+        $email = $validateF->sanitize($user['user_email']);
+        $amount = ((int)$post['amount']);
+
+        $customer = \Stripe\Customer::create(array(
+            'email' => $email,
+            'card'  => $token
+        ));
+        $charge = \Stripe\Charge::create(array(
+            'customer' => $customer->id,
+            'amount'   => $amount,
+            'currency' => 'eur'
+        ));
+    }
+
+    /**
+     *  Checks that we have our product in stock and if we do returns true, else returns false
+     * @param array $itemsTocheck
+     * @param array $itemsDB
+     * @return bool
+     */
+    function inStock($itemsTocheck, $itemsDB)
+    {
+        $text = new TextFunctions();
+        for($i = 0; $i < count($itemsTocheck); $i++)
+        {
+            $sizes = $text->deconstructString($itemsDB[$i]['product_info']->getSize());
+            if($itemsTocheck[$i][0] == $itemsDB[$i][0])
+            {
+                foreach($sizes as $size)
+                {
+                    if($size[0] == $itemsTocheck[$i][1])
+                    {
+                        if($size[1] < $itemsTocheck[$i][3])
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+}

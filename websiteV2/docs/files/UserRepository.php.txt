@@ -1,0 +1,96 @@
+<?php
+/**
+ *  comment
+ */
+
+namespace Itb;
+use Itb\User;
+
+/**
+ * Class UserRepository
+ * @package Itb
+ */
+class UserRepository
+{
+    /**
+     * Array of our users found
+     * @var array
+     */
+    private $users = [];
+
+    /**
+     * adds one to our class user array
+     * @param array $user
+     * @return array
+     */
+    function addOneToRepository($user)
+    {
+        $this->users[] = $user;
+    }
+
+    /**
+     * gets all our user
+     * @return array
+     */
+    public function getUsers()
+    {
+        return $this->users;
+    }
+
+    /**
+     * sets the class array to the parameter
+     * @param array $users
+     */
+    public function setUsers($users)
+    {
+        $this->users = $users;
+    }
+
+    /**
+     * gets our users and returns a array if found, else returns 0
+     * @return array|int
+     */
+    public function getAllUsers()
+    {
+        $connect = new Config();
+        $sql = 'SELECT * FROM user_db';
+        $query = $connect->connectPDO()->prepare($sql);
+        $query->execute();
+
+        if($query->rowCount() > 0)
+        {
+            $count = 0;
+            while ($user = $query->fetchAll())
+            {
+                $this->users = $user;
+             }
+        } else{
+            return 0;
+        }
+        return  $this->users;
+    }
+
+    /**
+     * gets the user from the database, if found return the array else 0
+     * @param int $id
+     * @return int|array
+     */
+    public function getOneFromDB($id)
+    {
+        $connect = new Config();
+        $sql = 'SELECT * FROM user_db WHERE id = :id';
+        $query = $connect->connectPDO()->prepare($sql);
+        $query->bindParam(':id', $id, \PDO::PARAM_INT);
+        $query->execute();
+
+        if($user = $query->fetch())
+        {
+            return $user;
+        } else{
+            return 0;
+        }
+    }
+
+
+
+}

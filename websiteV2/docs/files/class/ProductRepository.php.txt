@@ -1,0 +1,241 @@
+<?php
+/**
+ * comment
+ */
+
+namespace Itb;
+use PDO;
+
+/**
+ * Class ProductRepository
+ * @package Itb
+ */
+class ProductRepository
+{
+    /**
+     * Porduct Results
+     * @var array
+     */
+    private $products = [];
+
+    /**
+     * gets the product array
+     * @return array
+     */
+    public function getProducts()
+    {
+        return $this->products;
+    }
+
+    /**
+     * sets the product array
+     * @param array $products
+     */
+    public function setProducts($products)
+    {
+        $this->products = $products;
+    }
+
+    /**
+     * gets all the products within our database, if found returns the array, else returns 0
+     * @return array|int
+     */
+    public function getAllProducts()
+    {
+        $sql = 'SELECT * FROM products_db';
+        $query = connectPDO()->prepare($sql);
+        $query->execute();
+
+        if($query->rowCount() > 0)
+        {
+            while ($product = $query->fetchAll())
+            {
+                $this->products = $product;
+            }
+        } else{
+            return 0;
+        }
+        return  $this->products;
+    }
+
+    /**
+     * gets our products that sold the most, returns them
+     * @return int|string
+     */
+    public function getProductsByNumberSold()
+    {
+        $sql = 'SELECT * FROM products_db ORDER by product_sold';
+        $query = connectPDO()->prepare($sql);
+        $query->execute();
+
+        if($query->rowCount() > 0)
+        {
+            while ($product = $query->fetchAll())
+            {
+                $this->products = $product;
+            }
+        } else{
+            return 'No Products Found';
+        }
+        return  0;
+    }
+
+    /**
+     *  gets the products for each category, if found, returns array, else returns string
+     * @param int $cat
+     * @return string
+     */
+    public function getProductsByCat($cat)
+    {
+        $sql = 'SELECT * FROM products_db WHERE product_category = :cat';
+        $query = connectPDO()->prepare($sql);
+        $query->bindParam(':cat', $cat, \PDO::PARAM_INT);
+        $query->execute();
+
+        if($query->rowCount() > 0)
+        {
+            while ($product = $query->fetchAll())
+            {
+                $this->products = $product;
+            }
+        } else{
+            return 'No Products Found';
+        }
+        return  $this->product;
+    }
+
+    /**
+     *  finds the product that have been archived, if found, returns the array, else returns 0
+     * @param int $check
+     * @return array|int
+     */
+    public function getProductsArchived($check)
+    {
+        $sql = 'SELECT * FROM products_db WHERE product_archived = :archived';
+        $query = connectPDO()->prepare($sql);
+        $query->bindParam(':archived', $check, \PDO::PARAM_INT);
+        $query->execute();
+
+        if($query->rowCount() > 0)
+        {
+            while ($product = $query->fetchAll())
+            {
+                $this->products = $product;
+            }
+        } else{
+            return 0;
+        }
+        return  $this->products;
+    }
+
+    /**
+     * searchs for one within the database, if found returns the array, else returns 0
+     * @param int $id
+     * @return int| array
+     */
+    public function getOneFromDb($id)
+    {
+        $sql = 'SELECT * FROM products_db WHERE id = :id';
+        $query = connectPDO()->prepare($sql);
+        $query->bindParam(':id', $id, \PDO::PARAM_INT);
+        $query->execute();
+
+        if($product = $query->fetch(\PDO::FETCH_ASSOC))
+        {
+            return $product;
+        } else{
+            return 0;
+        }
+    }
+
+    /**
+     *  gets the category list
+     * @return array
+     */
+    function getCategorys()
+    {
+        $sql = "SELECT * FROM category";
+        $query = connectPDO()->prepare($sql);
+        $query->execute();
+
+        return $query->fetchAll();
+    }
+
+    /**
+     * adds one to the product array in the class
+     * @param int $id
+     */
+    public function addOneToProducts($id)
+    {
+        $sql = 'SELECT * FROM products_db WHERE id = :id';
+        $query = connectPDO()->prepare($sql);
+        $query->bindParam(':id', $id, \PDO::PARAM_INT);
+        $query->execute();
+
+        if($product = $query->fetch(\PDO::FETCH_ASSOC))
+        {
+            $this->products[] = $product;
+        }
+    }
+
+    /**
+     *  gets the string name from database
+     * @param int $id
+     * @return string
+     */
+    function getCategoryFromDatabase($id)
+    {
+        $catQ = connectPDO()->query("SELECT * FROM category WHERE id = '$id'");
+        $category = $catQ->fetch(PDO::FETCH_ASSOC);
+        return $category['category'];
+    }
+
+    /**
+     *  for admin, gets the list of our low stock items as warning for page
+     * @param array $products
+     * @return array
+     */
+    function getLowStock($products)
+    {
+        $convertedProduct = [];
+        $lowStockProducts = [];
+        $text = new TextFunctions();
+        foreach ($products as $product) {
+            $convertedProduct[] = json_decode($product['product_info'], true);
+        }
+        foreach ($convertedProduct as $products) {
+            $sizeArray = $text->deconstructString($products['product_size']);
+            foreach ($sizeArray as $size) {
+                if ($size[1] < 10) {
+                    $productInfo = [$products['product_name'], $size[0], $size[1]];
+                    $lowStockProducts[] = $productInfo;
+                }
+            }
+        }
+        return $lowStockProducts;
+    }
+
+    /**
+     * gets the list of discounted products, limit is how many we want to show
+     * @param int $limit
+     * @return array|int
+     */
+    public function getSaleProducts($limit)
+    {
+        $sql = 'SELECT * FROM products_db WHERE product_discount > 0 ORDER BY product_discount DESC LIMIT :limit';
+        $query = connectPDO()->prepare($sql);
+        $query->bindParam(':limit', $limit, \PDO::PARAM_INT);
+        $query->execute();
+
+        if($query->rowCount() > 0)
+        {
+            while ($product = $query->fetchAll())
+            {
+                $this->products = $product;
+            }
+        } else{
+            return 0;
+        }
+        return  $this->products;
+    }
+}

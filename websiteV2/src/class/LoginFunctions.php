@@ -1,0 +1,83 @@
+<?php
+/**
+ *  comment
+ */
+
+namespace Itb;
+
+use PDO;
+
+/**
+ * Class LoginFunctions
+ * @package Itb
+ */
+class LoginFunctions
+{
+    /**
+     *  finds our user name from the database and if found, creates a user object and adds name, id, account, style to $_session.
+     * then updates our login time, and sets out new cookie.
+     * if not found displays error.
+     * @param array $post
+     */
+
+    function loginUser($post)
+    {
+        $connect = new Config();
+        $validateF = new ValidateFunctions();
+        session_start();
+        $email = $validateF->sanitize($post['user_email']);
+        $sql = "SELECT * FROM user_db WHERE user_email =  :email";
+        $query = $connect->connectPDO()->prepare($sql);
+        $query->bindParam(':email', $email,\PDO::PARAM_STR);
+        $query->execute();
+
+        if($user = $query->fetch(PDO::FETCH_ASSOC))
+        {
+            $userObj = new User();
+            $userInfo = json_decode($user['user_info'], true);
+            $userObj->copyToObject($userInfo);
+            if(password_verify($post['user_password'], $userObj->getPassword())){
+                $_SESSION['user_name'] = $userObj->getName();
+                $_SESSION['account_type'] = $userObj->getAccountType();
+                $_SESSION['id'] = $user['id'];
+                $_SESSION['style'] = $user['style'];
+                $cookie_name = "user_login";
+                $cookie_user = $_SESSION['user_name'];
+                $timeout = time() + (60 * 60);
+                setcookie($cookie_name, $cookie_user, $timeout, '/');
+                $userCD = new UserCrud();
+                $userCD->updateLoginTime($user['id']);
+                $_SESSION['success'] = ['You logged in successfully, Welcome '.$userObj->getName()];
+            } else{
+                $_SESSION['error'] = ['Email or password does not match any in our database.'];
+            }
+        }else
+        {
+            $_SESSION['error'] = ['Email or password does not match any in our database.'];
+        }
+    }
+
+    /**
+     * Action to log the user out and end the session.
+     */
+    function logUserOut()
+    {
+        $this->endSession();
+        session_start();
+        $_SESSION['success'] = ['User Logged out successfully'];
+    }
+
+    /**
+     * Kills all cookies!!!
+     */
+    function endSession()
+    {
+        if(ini_get('session.use_cookies'))
+        {
+            $cookie = session_get_cookie_params();
+            setcookie(session_name(), '', time()- 4200, $cookie['path'], $cookie['domain'], $cookie['secure'], $cookie['httponly']);
+        }
+        session_destroy();
+
+    }
+}
